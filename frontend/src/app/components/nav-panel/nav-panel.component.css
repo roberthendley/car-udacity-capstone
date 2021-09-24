@@ -1,0 +1,46 @@
+
+
+.nav {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border-right: #424242;
+    border-style: solid;
+}
+
+.nav-navigation {
+    flex-grow: 2;
+}
+
+.nav-userinfo {
+    color: #ffff;
+    padding: 0.5rem;
+    background-color: rgb(66, 66, 66);
+    max-height: 20%;
+    overflow: hidden;
+}
+
+.nav-footer {
+    max-height: 10%;
+    background-color: rgb(66, 66, 66);
+    overflow: hidden;
+}
+
+.nav-footer > div {
+    margin: 1rem;
+    display: flex;
+    justify-content: center;
+}
+
+.nav-container {
+    display: flex;
+    flex-direction: column;
+    align-items:center;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+}
+
+.nav-container-item{
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+}
