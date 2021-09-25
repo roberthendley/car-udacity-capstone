@@ -1,5 +1,5 @@
 from flask import Blueprint, request, abort, jsonify
-from .models import Contact, DEFAULT_PAGE_SIZE
+from ..models import Contact, DEFAULT_PAGE_SIZE
 from sqlalchemy.exc import DatabaseError
 from auth.auth import requires_auth
 

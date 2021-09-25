@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from flask import Blueprint, request, abort, jsonify
 from sqlalchemy.sql.sqltypes import DateTime
-from .models import Report, ReportItem, DEFAULT_PAGE_SIZE
+from ..models import Report, ReportItem, DEFAULT_PAGE_SIZE
 from sqlalchemy.exc import DatabaseError
 from auth.auth import requires_auth
 

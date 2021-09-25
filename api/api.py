@@ -2,9 +2,8 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from werkzeug import Response
 from .models import db, migrate
-from . import clients
-from . import contacts
-from . import reports
+from .views import clients, contacts, reports
+from auth import AuthError
 
 # create and configure the app
 
@@ -47,6 +46,7 @@ def create_app(config_object):
     Exception Handler - Unauthorised Request (403)
     '''
     @app.errorhandler(403)
+    @app.errorhandler(AuthError)
     def unauthorised_request(error):
         return return_error(403, 'You are not authorised to perform the ' +
                             'request')
