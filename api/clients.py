@@ -1,7 +1,7 @@
 from flask import Blueprint, request, abort, jsonify
 from .models import DEFAULT_PAGE_SIZE, Client, ClientContact, DEFAULT_PAGE_SIZE
 from sqlalchemy.exc import DatabaseError
-from ..auth.auth import requires_auth
+from auth.auth import requires_auth
 
 blueprint = Blueprint('clients', __name__)
 
