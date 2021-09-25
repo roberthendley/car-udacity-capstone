@@ -1,5 +1,5 @@
-from api import create_app
-from config import ProdConfig, DevConfig
+from .api import create_app
+from .config import ProdConfig, DevConfig
 import os
 
 config = ProdConfig if os.getenv('FLASK_ENV') == 'production' else DevConfig
