@@ -3,6 +3,13 @@
 # Virtual Env
 /venv
 
+#environment variables
+.env
+.flaskenv
+
+# Runtime Cache
+__pycache__/
+
 # IDEs and editors
 /.idea
 .project
