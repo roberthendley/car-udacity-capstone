@@ -69,10 +69,11 @@ class Client(db.Model):
     name = Column(String, nullable=False)
     bus_reg_nbr = Column(String(20), nullable=False)
     abbreviation = Column(String(10), nullable=False)
-    contacts = relationship('ClientContact',
-                            backref='client',
-                            lazy='noload'
-                            )
+    contacts = relationship(
+        'ClientContact',
+        backref='client',
+        lazy='noload')
+    reports = relationship('Report', backref='client', lazy='noload')
 
     def __init__(self, name: str = None, bus_reg_nbr: str = None, abbreviation: str = None) -> None:
         self.name = name
@@ -202,7 +203,6 @@ class Report(db.Model):
         else:
             return date.strftime('%Y-%m-%d')
 
-
     def insert(self):
         db.session.add(self)
         db.session.commit()
@@ -266,4 +266,3 @@ class ReportItem(db.Model):
     def delete(self):
         db.session.delete(self)
         db.session.commit()
-
