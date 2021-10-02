@@ -72,10 +72,14 @@ class Client(db.Model):
     contacts = relationship(
         'ClientContact',
         backref='client',
+        lazy='noload',
+        cascade="all, delete, delete-orphan")
+    reports = relationship(
+        'Report', 
+        backref='client',
         lazy='noload')
-    reports = relationship('Report', backref='client', lazy='noload')
 
-    def __init__(self, name: str = None, bus_reg_nbr: str = None, abbreviation: str = None) -> None:
+    def __init__(self, name: str = None, bus_reg_nbr: str = None, abbreviation: str = None):
         self.name = name
         self.bus_reg_nbr = bus_reg_nbr
         self.abbreviation = abbreviation
@@ -170,6 +174,9 @@ class Report(db.Model):
     report_to_date = Column(Date, nullable=True)
     engagement_reference = Column(String(20), nullable=False)
     report_status = Column(String(10), nullable=False)
+    report_items = relationship(
+        "ReportItem", backref="report", lazy="select",
+        cascade="all, delete, delete-orphan")
 
     def from_dict(self, data: dict):
 
@@ -196,6 +203,12 @@ class Report(db.Model):
             'engagement_reference': self.engagement_reference,
             'report_status': self.report_status
         }
+
+    def format_detailed(self):
+        report_items = [format_report_item(i) for i in self.report_items]
+        report = self.format()
+        report['report_items'] = report_items
+        return report
 
     def format_report_date(self, date):
         if date is None:
@@ -244,17 +257,7 @@ class ReportItem(db.Model):
         return item_type
 
     def format(self):
-        return {
-            'report_id': self.report_id,
-            'report_item_nbr': self.report_item_nbr,
-            'item_type': self.item_type,
-            'item_sequence_nbr': self.item_sequence_nbr,
-            'item_description': self.item_description,
-            'item_complete': self.item_complete,
-            'request_expected_outcome': self.request_expected_outcome,
-            'issue_status': self.issue_status,
-            'issue_action_description': self.issue_action_description,
-        }
+        return format_report_item(self)
 
     def insert(self):
         db.session.add(self)
@@ -266,3 +269,17 @@ class ReportItem(db.Model):
     def delete(self):
         db.session.delete(self)
         db.session.commit()
+
+
+def format_report_item(item: ReportItem):
+    return {
+        'report_id': item.report_id,
+        'report_item_nbr': item.report_item_nbr,
+        'item_type': item.item_type,
+        'item_sequence_nbr': item.item_sequence_nbr,
+        'item_description': item.item_description,
+        'item_complete': item.item_complete,
+        'request_expected_outcome': item.request_expected_outcome,
+        'issue_status': item.issue_status,
+        'issue_action_description': item.issue_action_description,
+    }
