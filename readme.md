@@ -29,7 +29,7 @@ The application will provide a searchable centralised repository of all work und
 - Flask-SQLAlchemy - 
 - psycopg2-binary - PostgreSQL adapter
 
-** NOTE ** This project assumes the use of a PostagreSQL database to query and persist data. While other relational database systems are supported by SQLAlchemy (eg SQLite3, MySQL, MS SQL Server, etc) changes will be required for the correct configuration of the database and the database adaptor/connector library.
+**NOTE:** This project assumes the use of a PostagreSQL database to query and persist data. While other relational database systems are supported by SQLAlchemy (eg SQLite3, MySQL, MS SQL Server, etc) changes will be required for the correct configuration of the database and the database adaptor/connector library.
 
 ## Environment Setup
 

@@ -180,43 +180,6 @@ def delete_report(id: int):
 
 
 # ---------------------------------------------------
-# Route - Update a Report Item
-# ----------------------------------------------------
-@blueprint.route('/api/reports/<int:report_id>/items/<int:item_id>', methods=['PATCH'])
-@requires_auth('update:report-items')
-def update_report_item(report_id: int, item_id: int):
-    report_item: ReportItem = ReportItem.query.filter(
-        ReportItem.report_id == report_id,
-        ReportItem.report_item_nbr == item_id).first()
-
-    if not report_item:
-        abort(404)
-
-    body_data: dict = request.get_json()
-
-    if not body_data:
-        abort(400)
-
-    try:
-        report_item.from_dict(body_data)
-        report_item.update()
-
-        return jsonify({
-            "success": True,
-            "message": "The report item has been successfully updated",
-            "data": report_item.format()
-        }), 200
-
-    except DatabaseError as db_error:
-        print(db_error)
-        abort(400)
-
-    except Exception as error:
-        print(error)
-        abort(500)
-
-
-# ---------------------------------------------------
 # Route - Get the specified report report-items
 # ----------------------------------------------------
 @blueprint.route('/api/reports/<int:report_id>/items', methods=['GET'])

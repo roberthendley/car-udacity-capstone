@@ -48,8 +48,8 @@ def create_app(config_object):
     @app.errorhandler(403)
     @app.errorhandler(AuthError)
     def unauthorised_request(error):
-        return return_error(403, 'You are not authorised to perform the ' +
-                            'request')
+        error_descr = 'You are not authorised to perform the request'      
+        return return_error(error.status_code, error_descr)
 
     '''
     Exception Handler - Resource Not Found (404)

@@ -22,8 +22,12 @@ def is_valid_client(body_data: dict) -> bool:
 
 def is_valid_client_contact(body_data: dict) -> bool:
     name = body_data.get('name')
+    client_id = body_data.get('client_id')
 
     if name is None:
+        return False
+
+    if not Client.query.get(client_id):
         return False
 
     return True
@@ -138,6 +142,29 @@ def update_client(client_id):
         print(error)
         abort(500)
 
+@blueprint.route('/api/clients/<int:client_id>', methods=['DELETE'])
+@requires_auth('delete:clients')
+def delete_client(client_id):
+
+    client = Client.query.get_or_404(client_id)
+
+    try:
+        client.delete()
+
+        return jsonify({
+            "success": True,
+            "message": "The client has been successfully deleted",
+            "id": client_id
+        }), 200
+
+    except DatabaseError as db_error:
+        print(db_error)
+        abort(400)
+
+    except Exception as error:
+        print(error)
+        abort(500)
+
 '''
 Routes - Client Contacts
 '''
@@ -223,7 +250,7 @@ def get_client_contact(client_id, contact_id):
     })
 
 
-@blueprint.route('/api/client/<int:client_id>/contacts/<int:contact_id>', methods=['PATCH'])
+@blueprint.route('/api/clients/<int:client_id>/contacts/<int:contact_id>', methods=['PATCH'])
 @requires_auth('update:client-contacts')
 def update_client_contact(client_id, contact_id):
     body_data: dict = request.get_json()
@@ -264,6 +291,7 @@ def update_client_contact(client_id, contact_id):
     except Exception as error:
         print(error)
         abort(500)
+
 
 @blueprint.route('/api/clients/<int:client_id>/contacts/<int:contact_id>', methods=['DELETE'])
 @requires_auth('delete:client-contacts')

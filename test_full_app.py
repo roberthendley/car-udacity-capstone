@@ -8,24 +8,28 @@ from werkzeug.wrappers import response
 import http
 from api import create_app
 from config import TestConfig
+from dotenv import load_dotenv
 
-def generate_access_token():
-    AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN")
-    AUTH0_AUDIENCE = os.getenv("AUTH0_AUDIENCE")
-    AUTH0_CLIENT_ID = os.getenv('AUTH0_CLIENT_1')
-    AUTH0_SECRET = os.getenv('AUTH0_SECRET_1')
+AUTH0_DOMAIN = ""
+AUTH0_AUDIENCE = ""
+admin_token = ""
+consultant_token = ""
+client_mgr_token = ""
 
+def generate_access_token(client_id, client_secret):
     conn = http.client.HTTPSConnection(AUTH0_DOMAIN)
-    payload = f'{{"client_id":"{AUTH0_CLIENT_ID}}}",' \
-        f'"client_secret":"{AUTH0_SECRET}",' \
-        f'"audience":"{AUTH0_AUDIENCE}",' \
-        '"grant_type":"client_credentials"}'
+    payload = {
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "audience": AUTH0_AUDIENCE,
+        "grant_type": "client_credentials"
+    }
 
     headers = {'content-type': "application/json"}
-    conn.request("POST", "/oauth/token", payload, headers)
+    conn.request("POST", "/oauth/token", json.dumps(payload), headers)
     res = conn.getresponse()
     data = res.read()
-    return data.decode("utf-8")
+    return json.loads(data)
 
 
 class FullTestSuite(unittest.TestCase):
@@ -34,12 +38,8 @@ class FullTestSuite(unittest.TestCase):
     def setUp(self):
         self.app = create_app(TestConfig)
         self.client = self.app.test_client
-
-        # Get a token so that the protected end points can be reached
-
-        token_dict: dict = generate_access_token()
         self.headers: dict = {
-            "Authorization": f"Bearer {token_dict.get('access_token')}"}
+            "Authorization": f"Bearer {admin_token}"}
         self.contact_id = 0
         self.client_id = 0
         self.client_contact_id = 0
@@ -50,9 +50,6 @@ class FullTestSuite(unittest.TestCase):
         """Executed after reach test"""
         pass
 
-    """
-    Write at least one test for each test for successful operation and for expected errors.
-    """
     # =========================================================================
     # Internal Contact Tests
     # =========================================================================
@@ -1095,15 +1092,9 @@ class ClientMgrTest(unittest.TestCase):
 
     def setUp(self):
         self.app = create_app(TestConfig)
-        self.client = self.app.test_client
-
-        client_id = os.getenv('AUTH0_CLIENT_2')
-        secret = os.getenv('AUTH0_SECRET_2')
-
-        # Get a token so that the protected end points can be reached
-        token_dict: dict = generate_access_token(client_id, secret)
+        self.client = self.app.test_client()
         self.headers: dict = {
-            "Authorization": f"Bearer {token_dict.get('access_token')}"}
+            "Authorization": f"Bearer {client_mgr_token}"}
         self.contact_id = 1
         self.client_id = 1
 
@@ -1444,15 +1435,9 @@ class ConsultantTest(unittest.TestCase):
 
     def setUp(self):
         self.app = create_app(TestConfig)
-        self.client = self.app.test_client
-
-        client_id = os.getenv('AUTH0_CLIENT_3')
-        secret = os.getenv('AUTH0_SECRET_3')
-
-        # Get a token so that the protected end points can be reached
-        token_dict: dict = generate_access_token(client_id, secret)
+        self.client = self.app.test_client()
         self.headers: dict = {
-            "Authorization": f"Bearer {token_dict.get('access_token')}"}
+            "Authorization": f"Bearer {consultant_token}"}
         self.contact_id = 1
         self.client_id = 1
 
@@ -1776,4 +1761,21 @@ class ConsultantTest(unittest.TestCase):
 
 # Make the tests conveniently executable
 if __name__ == "__main__":
-    unittest.main()
+    load_dotenv()
+    AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN")
+    AUTH0_AUDIENCE = os.getenv("AUTH0_AUDIENCE")
+
+    token_dict: dict = generate_access_token(os.getenv('AUTH0_CLIENT_ADMIN'),os.getenv('AUTH0_SECRET_ADMIN'))
+    if token_dict.get('access_token'):
+        admin_token = token_dict.get('access_token')
+    
+    token_dict: dict = generate_access_token(os.getenv('AUTH0_CLIENT_CNSLT'),os.getenv('AUTH0_SECRET_CNSLT'))
+    if token_dict.get('access_token'):
+        consultant_token = token_dict.get('access_token')
+
+    token_dict: dict = generate_access_token(os.getenv('AUTH0_CLIENT_CLNTMGR'),os.getenv('AUTH0_SECRET_CLNTMGR'))
+    if token_dict.get('access_token'):
+        client_mgr_token = token_dict.get('access_token')
+
+    if admin_token and consultant_token and client_mgr_token:
+        unittest.main()

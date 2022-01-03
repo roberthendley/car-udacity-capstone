@@ -1,14 +1,19 @@
 # Application Testing
 
+## Application Testing Environment Variables
+
+The project submission notes include the details of the credentials to be included in a `.env` file to be added to the project root directory. Copy and paste the credentials into the `.env` file prior to running the test scripts. These environment variables will be used by the test scripts to generate valid authentication tokens.
+
+
 ## Automated API Testing
 
 Setup the application for testing by configuring the environment variables that will be used to create the required authorisation tokens.
 
-TODO insert test credentials for 
-
 The application test suite can be run with;
 ```console
-$ python test_app.py
+$ python test_full_app.py
+$ python test_consultant.py
+$ python test_client_mgr.py
 ```
 The test script automatically generates authentication tokens to test the application for users with different permissions.
 
@@ -34,7 +39,7 @@ https://car-project-udacity.au.auth0.com/authorize?audience=car-api.hendley.id.a
             password
         </td>
         <td>
-            ** REPLACE **
+            See project submission notes
         </td>
     </tr>
     <tr>
@@ -78,7 +83,7 @@ https://car-project-udacity.au.auth0.com/authorize?audience=car-api.hendley.id.a
             password
         </td>
         <td>
-            ** REPLACE **
+            See project submission notes
         </td>
     </tr>
     <tr>
@@ -123,7 +128,7 @@ https://car-project-udacity.au.auth0.com/authorize?audience=car-api.hendley.id.a
             password
         </td>
         <td>
-            ** REPLACE **
+            See project submission notes
         </td>
     </tr>
     <tr>

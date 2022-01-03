@@ -48,7 +48,8 @@ class Contact(db.Model):
             'position_title': self.position_title,
             'email_address': self.email_address,
             'mobile_phone': self.mobile_phone,
-            'contact_type': self.contact_type
+            'contact_type': self.contact_type,
+            'status': self.status
         }
 
     def insert(self):

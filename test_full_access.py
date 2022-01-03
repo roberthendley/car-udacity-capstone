@@ -4,63 +4,16 @@ import unittest
 import json
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.datastructures import Headers
+from werkzeug.test import TestResponse
 from werkzeug.wrappers import response
 import http
 from api import create_app
-from config import TestConfig
+from config import DevConfig
+from dotenv import load_dotenv
 
-
-def generate_access_token():
-    AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN")
-    AUTH0_AUDIENCE = os.getenv("AUTH0_AUDIENCE")
-    AUTH0_CLIENT_ID = os.getenv('AUTH0_CLIENT_CLNTMGR')
-    AUTH0_SECRET = os.getenv('AUTH0_SECRET_CLNTMGR')
-
-    conn = http.client.HTTPSConnection(AUTH0_DOMAIN)
-    payload = f'{{"client_id":"{AUTH0_CLIENT_ID}}}",' \
-        f'"client_secret":"{AUTH0_SECRET}",' \
-        f'"audience":"{AUTH0_AUDIENCE}",' \
-        '"grant_type":"client_credentials"}'
-
-    headers = {'content-type': "application/json"}
-    conn.request("POST", "/oauth/token", payload, headers)
-    res = conn.getresponse()
-    data = res.read()
-    return data.decode("utf-8")
-
-
-class ClientMgrTestSuite(unittest.TestCase):
-    """This class performs the client manager suite of test cases for the CAR app"""
-
-    def setUp(self):
-        self.app = create_app(TestConfig)
-        self.client = self.app.test_client
-
-        # Get a token so that the protected end points can be reached
-
-        token_dict: dict = generate_access_token()
-        self.headers: dict = {
-            "Authorization": f"Bearer {token_dict.get('access_token')}"}
-        self.contact_id = 0
-        self.client_id = 0
-        self.client_contact_id = 0
-        self.report_id = 0
-        self.report_item_id = 0
-
-    def tearDown(self):
-        """Executed after reach test"""
-        pass
-
-    """
-    Write at least one test for each test for successful operation and for expected errors.
-    """
-    # =========================================================================
-    # Internal Contact Tests
-    # =========================================================================
-
-    def test_add_contact_success(self):
-
-        contact_data = {
+CLIENT_ID_VAR = "AUTH0_CLIENT_ADMIN"
+CLIENT_SECRET_VAR = "AUTH0_SECRET_ADMIN"
+GOOD_CONTACT_DATA = {
             "name": "Will Power",
             "email_address": "wpower@company.com.au",
             "mobile_phone": "0412987654",
@@ -68,100 +21,149 @@ class ClientMgrTestSuite(unittest.TestCase):
             "contact_type": "other",
             "status": "A"
         }
-        test_name = "Test: Add Contact success"
-        response = self.client().post(
+
+
+def generate_auth_token():
+    AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN")
+    AUTH0_AUDIENCE = os.getenv("AUTH0_AUDIENCE")
+    AUTH0_CLIENT_ID = os.getenv(CLIENT_ID_VAR)
+    AUTH0_CLIENT_SECRET = os.getenv(CLIENT_SECRET_VAR)
+
+    conn = http.client.HTTPSConnection(AUTH0_DOMAIN)
+    payload = {
+        "client_id": AUTH0_CLIENT_ID,
+        "client_secret": AUTH0_CLIENT_SECRET,
+        "audience": AUTH0_AUDIENCE,
+        "grant_type": "client_credentials"
+    }
+
+    headers = {'content-type': "application/json"}
+    conn.request("POST", "/oauth/token", json.dumps(payload), headers)
+    res = conn.getresponse()
+    data = res.read()
+    return json.loads(data)
+
+class FullAccessTestSuite(unittest.TestCase):
+    """This class performs the full suite of test cases for the CAR app"""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        # load the environment variables
+        load_dotenv()
+        cls._auth_token = generate_auth_token()    
+
+    def setUp(self):
+        self.app = create_app(DevConfig)
+        self.client = self.app.test_client
+        self.headers: dict = {
+            "Authorization": f"Bearer {self._auth_token}"}
+
+    def tearDown(self):
+        """Executed after reach test"""
+        pass
+
+    # =========================================================================
+    # Internal Contact Tests
+    # =========================================================================
+    def add_contact(self, contact_data) -> TestResponse:
+        return self.client().post(
             '/api/contacts',
             headers=self.headers,
             json=contact_data)
+
+    def test_add_contact_success(self):
+        
+        response = self.add_contact(GOOD_CONTACT_DATA)
         # get the response body
         data = json.loads(response.data)
 
         self.assertEqual(
             response.status_code, 200,
-            msg=f"{test_name} - The Reponse Code was not 200")
+            msg="The Reponse Code was not 200"
+        )
         self.assertIn(
             'success', data,
-            msg=f"{test_name} - the response does not indicate call success")
+            msg="The response does not indicate call success"
+        )
         self.assertEqual(
             data['success'], True,
-            msg=f"{test_name} - the response did not report as successful")
+            msg="The response did not report as successful"
+        )
         self.assertIn(
             'data', data, msg="The reponse did not contain the contact data")
 
-        self.contact_id = data.get('id', default=1)
-
     def test_add_contact_fail(self):
+        # fails - no contact type
         contact_data = {
             "name": "Will Power",
             "mobile_phone": "0412987654",
             "position_title": "Test Contact",
-            "contact_type": "other",
             "status": "A"
         }
-        test_name = "Test: Add Contact fail"
-        response = self.client().post(
-            '/api/contacts', headers=self.headers, json=contact_data)
+
+        response = self.add_contact(contact_data)
         # get the response body
         data = json.loads(response.data)
 
         self.assertEqual(
             response.status_code, 400,
-            msg=f"{test_name} - The Reponse Code was not 400")
+            msg=f"The Reponse Code was not 400")
         self.assertIn(
             'success', data,
-            msg=f"{test_name} - the response does not indicate call success")
+            msg=f"The response does not indicate call success")
         self.assertEqual(
             data['success'], False,
-            msg=f"{test_name} - the response did not report as failed")
+            msg=f"The response did not report as failed")
 
     def test_get_contact_list_success(self):
-        test_name = "Test: Get Contacts List success"
         response = self.client().get('/api/contacts', headers=self.headers)
 
         # get the response body
         data = json.loads(response.data)
         self.assertEqual(
             response.status_code, 200,
-            msg=f"{test_name} - Status Code was not 200")
+            msg="Status Code was not 200")
         self.assertIn(
             'data', data,
-            msg=f"{test_name} - The response does not contain a questions array")
+            msg="The response does not contain a questions array")
         self.assertIn(
-            'success', data, msg=f"{test_name} - The response does not indicate call success")
+            'success', data, msg="The response does not indicate call success")
         self.assertEqual(
             data['success'], True,
-            msg=f"{test_name} - The success indicator is not equal to true")
+            msg="The success indicator is not equal to true")
 
     def test_get_contact_list_fail(self):
-        test_name = "Test: Get Contacts List fail"
         response = self.client().get('/api/contacts?page=1000', headers=self.headers)
 
         # get the response body
         data = json.loads(response.data)
         self.assertEqual(
             response.status_code, 404,
-            msg=f"{test_name} - Status Code was not 404")
+            msg="Status Code was not 404")
         self.assertEqual(
             data['success'], False,
-            msg=f"{test_name} - The response did not report as failed")
+            msg="The response did not report as failed")
 
     def test_get_contact_success(self):
-        test_name = "Test: Get Contact Success"
+
+        contact_response = self.add_contact(GOOD_CONTACT_DATA)
+        contact = json.loads(contact_response.data)
+        contact_id = contact.get('data').get('id')
         response = self.client().get(
-            f'/api/contacts/{self.contact_id}',
+            f'/api/contacts/{contact_id}',
             headers=self.headers)
 
         # get the response body
         data = json.loads(response.data)
         self.assertEqual(
             response.status_code, 200,
-            msg=f"{test_name} - Status Code was not 200")
+            msg="Status Code was not 200")
         self.assertEqual(
             data['success'], True,
-            msg=f"{test_name} - The response did not report as successful")
+            msg="The response did not report as successful")
         self.assertIn(
             'data', data,
-            msg=f"{test_name} - The reponse did not contain the contact data")
+            msg="The reponse did not contain the contact data")
 
     def test_get_contact_fail(self):
         test_name = "Test: Get Contact fail"
@@ -177,6 +179,12 @@ class ClientMgrTestSuite(unittest.TestCase):
             msg=f"{test_name} - The response did not report as failed")
 
     def test_update_contact_success(self):
+
+        # Create the contact to be updated
+        contact_response = self.add_contact(GOOD_CONTACT_DATA)
+        contact = json.loads(contact_response.data)
+        contact_id = contact.get('data').get('id')
+
         contact_data = {
             "name": "William Power",
             "mobile_phone": "9876543210",
@@ -184,9 +192,9 @@ class ClientMgrTestSuite(unittest.TestCase):
             "contact_type": "other",
             "status": "I"
         }
-        test_name = "Test: Update Contact success"
+
         response = self.client().patch(
-            f'/api/contacts/{self.contact_id}',
+            f'/api/contacts/{contact_id}',
             headers=self.headers,
             json=contact_data)
 
@@ -194,15 +202,21 @@ class ClientMgrTestSuite(unittest.TestCase):
         data = json.loads(response.data)
         self.assertEqual(
             response.status_code, 200,
-            msg=f"{test_name} - Status Code was not 200")
+            msg="Status Code was not 200")
         self.assertEqual(
             data['success'], True,
-            msg=f"{test_name} - The response did not report as successfult")
+            msg="The response did not report as successfult")
         self.assertIn(
             'data', data,
-            msg=f"{test_name} - The reponse did not contain the contact data")
+            msg="The reponse did not contain the contact data")
 
     def test_update_contact_failed(self):
+
+        # Create the contact to be updated
+        contact_response = self.add_contact(GOOD_CONTACT_DATA)
+        contact = json.loads(contact_response.data)
+        contact_id = contact.get('data').get('id')
+
         contact_data = {
             "name": "William Power",
             "mobile_phone": "9876543210",
@@ -212,7 +226,7 @@ class ClientMgrTestSuite(unittest.TestCase):
         }
         test_name = "Test: Update Contact fail"
         response = self.client().patch(
-            f'/api/contacts/{self.contact_id}', headers=self.headers, json=contact_data)
+            f'/api/contacts/{contact_id}', headers=self.headers, json=contact_data)
 
         # get the response body
         data = json.loads(response.data)
@@ -224,27 +238,32 @@ class ClientMgrTestSuite(unittest.TestCase):
             msg=f"{test_name} - The response did not report as failed")
 
     def test_delete_contact_success(self):
-        test_name = "Test: Delete Contact success"
+
+        # Create the contact to be deleted
+        contact_response = self.add_contact(GOOD_CONTACT_DATA)
+        contact = json.loads(contact_response.data)
+        contact_id = contact.get('data').get('id')
+
         response = self.client().delete(
-            f'/api/contacts/{self.contact_id}',
+            f'/api/contacts/{contact_id}',
             headers=self.headers)
+
         # get the response body
         data = json.loads(response.data)
         self.assertEqual(
             response.status_code, 200,
-            msg=f"{test_name} - Status Code was not 200")
+            msg="Status Code was not 200")
         self.assertEqual(
             data['success'], True,
-            msg=f"{test_name} - The response did not report as successful")
+            msg="The response did not report as successful")
         self.assertIn(
             'id', data,
             msg="The reponse did not contain the deeleted Id")
         self.assertEqual(
-            data['id'], self.contact_id,
-            msg=f"{test_name} - The deleted contact did not match the id sent")
+            data['id'], contact_id,
+            msg="The deleted contact did not match the id sent")
 
     def test_delete_contact_fail(self):
-        test_name = "Test: Delete Contact fail"
         response = self.client().delete(
             '/api/contacts/99',
             headers=self.headers)
@@ -252,22 +271,19 @@ class ClientMgrTestSuite(unittest.TestCase):
         data = json.loads(response.data)
         self.assertEqual(
             response.status_code, 404,
-            msg=f"{test_name} - Status Code was not 404")
+            msg="Status Code was not 404")
         self.assertEqual(
             data['success'], False,
-            msg=f"{test_name} - the response did not report as failed")
+            msg="the response did not report as failed")
 
     # =========================================================================
     # Client Tests
     # =========================================================================
     def test_add_client_success(self):
         client_data = {
-            "name": "Will Power",
-            "email_address": "wpower@company.com.au",
-            "mobile_phone": "0412987654",
-            "position_title": "Test Contact",
-            "client_type": "other",
-            "status": "A"
+            "name": "The Powerhouse",
+            "bus_reg_nbr": "12345678901",
+            "abbreviation": "TPH"
         }
 
         test_name = "Test: Add Client success"
@@ -290,7 +306,8 @@ class ClientMgrTestSuite(unittest.TestCase):
             'data', data,
             msg=f"{test_name} - The reponse did not contain the contact data")
 
-        self.client_id = data.get('id', default=1)
+        contact_data: dict = data.get('data')
+        self.client_id = contact_data.get('id', 1)
 
     def test_add_client_fail(self):
         client_data = {
@@ -431,63 +448,68 @@ class ClientMgrTestSuite(unittest.TestCase):
     # =========================================================================
     # Client Contact Tests
     # =========================================================================
-    def test_add_client_contact_success(self):
-        client_data = {
-            "name": "Will Power",
-            "email_address": "wpower@company.com.au",
-            "mobile_phone": "0412987654",
-            "position_title": "Test Contact",
-            "client_type": "other",
-            "status": "A"
-        }
-        test_name = "Test: Add Client Contacts success"
-        response = self.client().post(
+    def add_client_contact(self, contact_data) -> TestResponse:
+        # return the response
+        return self.client().post(
             '/api/clients',
             headers=self.headers,
-            json=client_data)
-        # get the response body
-        data = json.loads(response.data)
+            json=contact_data)
+
+    def update_client_contact(self, contact_data, client_contact_id=99) -> TestResponse:
+        # return the response
+        return self.client().patch(
+            f"/api/clients/{self.client_id}/contacts/{client_contact_id}",
+            headers=self.headers,
+            json=contact_data)
+
+    def test_add_client_contact_success(self):
+        contact_data = {
+            "name": "Will Power",
+            "client_id": self.client_id,
+            "email_address": "wpower@company.com.au",
+            "phone": "0412987654",
+            "position_title": "Test Contact"
+        }
+
+        response = self.add_client_contact(contact_data)
+        data: dict = json.loads(response.data)
 
         self.assertEqual(
             response.status_code, 200,
-            msg=f"{test_name} - The Reponse Code was not 200")
+            msg="The Reponse Code was not 200.")
         self.assertIn(
             'success', data,
-            msg=f"{test_name} - The response does not indicate call success")
+            msg="The response does not indicate call success")
         self.assertEqual(
             data['success'], True,
-            msg=f"{test_name} - The response did not report as successful")
+            msg="The response did not report as successful")
         self.assertIn(
             'data', data,
-            msg=f"{test_name} - The reponse did not contain the contact data")
+            msg="The reponse did not contain the contact data")
 
-        self.client_contact_id = data.get('id', default=1)
+        client_contact: dict = data.get('data')
+        self.client_contact_id = client_contact.get('id', 1)
 
     def test_add_client_contact_fail(self):
-        client_data = {
+        # fails - no client id
+        contact_data = {
             "name": "Will Power",
-            "mobile_phone": "0412987654",
-            "position_title": "Test Contact",
-            "client_type": "other",
-            "status": "A"
+            "phone": "0412987654",
+            "position_title": "Test Contact"
         }
-        test_name = "Test: Add Client Contacts fail"
-        response = self.client().post(
-            '/api/clients',
-            headers=self.headers,
-            json=client_data)
-        # get the response body
-        data = json.loads(response.data)
+
+        response = self.add_client_contact(contact_data)
+        data: dict = json.loads(response.data)
 
         self.assertEqual(
             response.status_code, 400,
-            msg=f"{test_name} - The Reponse Code was not 400")
+            msg="The Reponse Code was not 400")
         self.assertIn(
             'success', data,
-            msg=f"{test_name} - The response does not indicate call success")
+            msg="The response does not indicate call success")
         self.assertEqual(
             data['success'], False,
-            msg=f"{test_name} - The response did not report as failed")
+            msg="The response did not report as failed")
 
     def test_get_client_contact_list_success(self):
         test_name = "Test: Get Client Contact List success"
@@ -557,56 +579,50 @@ class ClientMgrTestSuite(unittest.TestCase):
             msg=f"{test_name} - The response did not report as failed")
 
     def test_update_client_contact_success(self):
-        client_data = {
+        contact_data = {
             "name": "William Power",
-            "mobile_phone": "9876543210",
+            "phone": "9876543210",
             "position_title": "Test Contact",
-            "client_type": "other",
-            "status": "I"
+            "email_address": "will@power.com"
         }
-        test_name = "Test: Update Client Contact success"
-        response = self.client().patch(
-            f"/api/clients/{self.client_id}/contacts/{self.client_contact_id}",
-            headers=self.headers,
-            json=client_data)
 
+        # Run the update attempt
+        response = self.update_client_contact(contact_data, self.client_contact_id)
         # get the response body
         data = json.loads(response.data)
+        # run the tests
         self.assertEqual(
             response.status_code, 200,
-            msg=f"{test_name} - Status Code was not 200")
+            msg="Status Code was not 200")
         self.assertEqual(
             data['success'], True,
-            msg=f"{test_name} - the response did not report as successfult")
+            msg="the response did not report as successfult")
         self.assertIn(
             'data', data,
-            msg=f"{test_name} - The reponse did not contain the contact data")
+            msg="The reponse did not contain the contact data")
 
     def test_update_client_contact_fail(self):
-        client_data = {
+        contact_data = {
             "name": "William Power",
-            "mobile_phone": "9876543210",
+            "phone": "9876543210",
             "position_title": "Test Contact",
-            "client_type": "invaild_type",
-            "status": "I"
+            "email_address": "will@power.com"
         }
-        test_name = "Test: Update Client Contact fail"
-        response = self.client().patch(
-            f"/api/clients/{self.client_id}/contacts/99",
-            headers=self.headers,
-            json=client_data)
 
+        # Run the update attempt
+        response = self.update_client_contact(contact_data)
         # get the response body
         data = json.loads(response.data)
+        # run the tests
         self.assertEqual(
             response.status_code, 404,
-            msg=f"{test_name} - Status Code was not 404")
+            msg="Status Code was not 404")
         self.assertEqual(
             data['success'], False,
-            msg=f"{test_name} - the response did not report as failed")
+            msg="The response did not report as failed")
 
     def test_delete_client_contact_success(self):
-        test_name = "Test: Delete Client Contact success"
+
         response = self.client().delete(
             f"/api/clients/{self.client_id}/contacts/{self.client_contact_id}",
             headers=self.headers)
@@ -614,19 +630,18 @@ class ClientMgrTestSuite(unittest.TestCase):
         data = json.loads(response.data)
         self.assertEqual(
             response.status_code, 200,
-            msg=f"{test_name} - Status Code was not 200")
+            msg="Status Code was not 200")
         self.assertEqual(
             data['success'], True,
-            msg=f"{test_name} - the response did not report as successful")
+            msg="The response did not report as successful")
         self.assertIn(
             'id', data,
             msg="The reponse did not contain the deleted Id")
         self.assertEqual(
             data['id'], self.client_id,
-            msg=f"{test_name} - The deleted contact did not match the id sent")
+            msg="The deleted contact did not match the id sent")
 
     def test_delete_client_contact_fail(self):
-        test_name = "Test: Delete Client Contact fail"
         response = self.client().delete(
             f"/api/clients/{self.client_id}/contacts/99",
             headers=self.headers)
@@ -635,10 +650,10 @@ class ClientMgrTestSuite(unittest.TestCase):
         data = json.loads(response.data)
         self.assertEqual(
             response.status_code, 404,
-            msg=f"{test_name} - Status Code was not 404")
+            msg="Status Code was not 404")
         self.assertEqual(
             data['success'], False,
-            msg=f"{test_name} - The response did not report as failed")
+            msg="The response did not report as failed")
 
     # =========================================================================
     # Client Delete Tests

@@ -17,7 +17,7 @@ class ProdConfig(Config):
         db_username,
         db_password,
         db_host,
-        db_username
+        db_name
     )
 
     ENV = 'production'
@@ -29,17 +29,32 @@ class DevConfig(Config):
     """Development configuration."""
     ENV = 'development'
     DEBUG = True
-    DB_NAME = 'dev_car.db'
-    # Put the db file in project root
-    DB_PATH = os.path.join(Config.APP_DIR, DB_NAME)
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///{0}'.format(DB_PATH)
-
+    db_username = os.getenv('DEV_DBUSER')
+    db_password = os.getenv('DEV_DBPWD')
+    db_host = os.getenv('DEV_DBHOST')
+    db_name = os.getenv('DEV_DBNAME')
+    database_path = database_path = "postgresql://{}:{}@{}/{}".format(
+        db_username,
+        db_password,
+        db_host,
+        db_name
+    )
+    SQLALCHEMY_DATABASE_URI = database_path
 
 class TestConfig(Config):
     """Test configuration."""
-    DB_NAME = 'test_car.db'
+    ENV = 'testing'
     TESTING = True
     DEBUG = True
-    # Put the db file in project root
-    DB_PATH = os.path.join(Config.APP_DIR, DB_NAME)
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///{0}'.format(DB_PATH)
+
+    db_username = os.getenv('TEST_DBUSER')
+    db_password = os.getenv('TEST_DBPWD')
+    db_host = os.getenv('TEST_DBHOST')
+    db_name = os.getenv('TEST_DBNAME')
+    database_path = database_path = "postgresql://{}:{}@{}/{}".format(
+        db_username,
+        db_password,
+        db_host,
+        db_name
+    )
+    SQLALCHEMY_DATABASE_URI = database_path

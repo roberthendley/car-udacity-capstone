@@ -12,8 +12,8 @@ from config import TestConfig
 def generate_access_token():
     AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN")
     AUTH0_AUDIENCE = os.getenv("AUTH0_AUDIENCE")
-    AUTH0_CLIENT_ID = os.getenv('AUTH0_CLIENT_1')
-    AUTH0_SECRET = os.getenv('AUTH0_SECRET_1')
+    AUTH0_CLIENT_ID = os.getenv('AUTH0_CLIENT_CNSLT')
+    AUTH0_SECRET = os.getenv('AUTH0_SECRET_CNSLT')
 
     conn = http.client.HTTPSConnection(AUTH0_DOMAIN)
     payload = f'{{"client_id":"{AUTH0_CLIENT_ID}}}",' \
